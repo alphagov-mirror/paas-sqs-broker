@@ -36,4 +36,6 @@ func NewSQSClientConfig(configJSON []byte) (*Config, error) {
 	return config, nil
 }
 
-type SQSClient struct{}
+type AWSClient struct {
+	*cloudformation.CloudFormation
+}
