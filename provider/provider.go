@@ -53,10 +53,19 @@ func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface
 		return "", "", false, err
 	}
 
+	fifo := "false"
+	if provisionData.Plan.Name == "fifo" {
+		fifo = "true"
+	}
+
 	params := []*cloudformation.Parameter{
 		{
-			ParameterKey:   aws.String("thing"),
-			ParameterValue: aws.String("value"),
+			ParameterKey:   aws.String("QueueName"),
+			ParameterValue: aws.String(s.getStackName(provisionData.InstanceID)),
+		},
+		{
+			ParameterKey:   aws.String("FifoQueue"),
+			ParameterValue: aws.String(fifo),
 		},
 	}
 
@@ -67,10 +76,10 @@ func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface
 		Parameters:   params,
 	})
 	if err != nil {
-		return "", "", true, err
+		return "", "", false, err
 	}
 
-	return "", "", true, nil
+	return "", "provision", true, nil
 }
 
 func (s *SQSProvider) Deprovision(ctx context.Context, deprovisionData provideriface.DeprovisionData) (operationData string, isAsync bool, err error) {
@@ -98,7 +107,7 @@ func (s *SQSProvider) Deprovision(ctx context.Context, deprovisionData provideri
 		}
 	}
 
-	return "", true, nil
+	return "deprovision", true, nil
 }
 
 func (s *SQSProvider) Bind(ctx context.Context, bindData provideriface.BindData) (
@@ -179,7 +188,7 @@ func (s *SQSProvider) getStack(ctx context.Context, stackName string) (*cloudfor
 }
 
 func (s *SQSProvider) getStackName(instanceID string) string {
-	return instanceID
+	return fmt.Sprintf("paas-sqs-broker-%s", instanceID)
 }
 
 func IsNotFoundError(err error) bool {
