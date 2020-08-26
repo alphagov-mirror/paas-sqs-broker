@@ -9,125 +9,76 @@ import (
 )
 
 const (
-	SQSResourceName                            = "SQSQueue"
-	SQSDLQResourceName                         = "SQSDLQueue"
-	SQSOutputURL                               = "QueueURL"
-	SQSDLQOutputURL                            = "DLQueueURL"
-	SQSResourceIAMPolicy                       = "SQSSIAMPolicy"
-	QueueNameParameterName                     = "QueueName"
-	IAMRoleParameterName                       = "IAMRoleName"
-	SQSRedrivePolicyParameterName              = "SQSRedrivePolicy"
-	ContentBasedDeduplicationParameterName     = "ContentBasedDeduplication"
-	DelaySecondsParameterName                  = "DelaySeconds"
-	FifoQueueParameterName                     = "FifoQueue"
-	MaximumMessageSizeParameterName            = "MaximumMessageSize"
-	MessageRetentionPeriodParameterName        = "MessageRetentionPeriod"
-	ReceiveMessageWaitTimeSecondsParameterName = "ReceiveMessageWaitTimeSeconds"
-	VisibilityTimeoutParameterName             = "VisibilityTimeout"
+	SQSResourceName      = "SQSQueue"
+	SQSDLQResourceName   = "SQSDLQueue"
+	SQSOutputURL         = "QueueURL"
+	SQSDLQOutputURL      = "DLQueueURL"
+	SQSResourceIAMPolicy = "SQSSIAMPolicy"
+	IAMRoleParameterName = "IAMRoleName"
 )
 
 type QueueParams struct {
-	QueueName                     string `json:"queueName,omitempty"`
-	ContentBasedDeduplication     bool   `json:"contentBasedDeduplication,omitempty"`
-	DelaySeconds                  int    `json:"delaySeconds,omitempty"`
-	FifoQueue                     bool   `json:"fifoQueue,omitempty"`
-	MaximumMessageSize            int    `json:"maximumMessageSize,omitempty"`
-	MessageRetentionPeriod        int    `json:"messageRetentionPeriod,omitempty"`
-	ReceiveMessageWaitTimeSeconds int    `json:"receiveMessageWaitTimeSeconds,omitempty"`
-	RedriveMaxReceiveCount        int    `json:"redriveMaxReceiveCount,omitempty"`
-	VisibilityTimeout             int    `json:"visibilityTimeout,omitempty"`
+	QueueName                     string            `json:"queueName,omitempty"`
+	ContentBasedDeduplication     bool              `json:"contentBasedDeduplication,omitempty"`
+	DelaySeconds                  int               `json:"delaySeconds,omitempty"`
+	FifoQueue                     bool              `json:"fifoQueue,omitempty"`
+	MaximumMessageSize            int               `json:"maximumMessageSize,omitempty"`
+	MessageRetentionPeriod        int               `json:"messageRetentionPeriod,omitempty"`
+	ReceiveMessageWaitTimeSeconds int               `json:"receiveMessageWaitTimeSeconds,omitempty"`
+	RedriveMaxReceiveCount        int               `json:"redriveMaxReceiveCount,omitempty"`
+	VisibilityTimeout             int               `json:"visibilityTimeout,omitempty"`
+	Tags                          map[string]string `json:"tags,omitempty"`
 }
 
 // GetStackTemplate returns a cloudformation Template for provisioning an SQS queue
-func QueueTemplate() (*goformation.Template, error) {
+func QueueTemplate(params QueueParams) (*goformation.Template, error) {
 	template := goformation.NewTemplate()
 
-	template.Parameters[QueueNameParameterName] = goformation.Parameter{
-		Type:    "String",
-		Default: "",
-	}
-	template.Parameters[SQSRedrivePolicyParameterName] = goformation.Parameter{
-		Type:    "String",
-		Default: "",
-	}
-	template.Parameters[ContentBasedDeduplicationParameterName] = goformation.Parameter{
-		Type:    "Boolean",
-		Default: "",
-	}
-	template.Parameters[DelaySecondsParameterName] = goformation.Parameter{
-		Type:    "Number",
-		Default: "",
-	}
-	template.Parameters[FifoQueueParameterName] = goformation.Parameter{
-		Type:    "Boolean",
-		Default: "",
-	}
-	template.Parameters[MaximumMessageSizeParameterName] = goformation.Parameter{
-		Type:    "Number",
-		Default: "",
-	}
-	template.Parameters[MessageRetentionPeriodParameterName] = goformation.Parameter{
-		Type:    "Number",
-		Default: "",
-	}
-	template.Parameters[ReceiveMessageWaitTimeSecondsParameterName] = goformation.Parameter{
-		Type:    "Number",
-		Default: "",
-	}
-	template.Parameters[VisibilityTimeoutParameterName] = goformation.Parameter{
-		Type:    "Number",
-		Default: "",
+	tags := []goformationtags.Tag{}
+	for k, v := range params.Tags {
+		tags = append(tags, goformationtags.Tag{
+			Key:   k,
+			Value: v,
+		})
 	}
 
-	tags := []goformationtags.Tag{
-		{
-			Key:   "Service",
-			Value: "sqs",
-		},
-		{
-			Key:   "DeployEnv",
-			Value: "????",
-		},
-	}
-
-	/*
-		var redrivePolicy interface{}
-		if params.RedriveMaxReceiveCount > 0 {
-			redrivePolicy = map[string]interface{}{
-				"deadLetterTargetArn": goformation.GetAtt(SQSDLQResourceName, "Arn"),
-				"maxReceiveCount":     params.RedriveMaxReceiveCount,
-			}
-		} else {
-			redrivePolicy = ""
+	var redrivePolicy interface{}
+	if params.RedriveMaxReceiveCount > 0 {
+		redrivePolicy = map[string]interface{}{
+			"deadLetterTargetArn": goformation.GetAtt(SQSDLQResourceName, "Arn"),
+			"maxReceiveCount":     params.RedriveMaxReceiveCount,
 		}
-	*/
+	} else {
+		redrivePolicy = ""
+	}
 
 	template.Resources[SQSResourceName] = &goformationsqs.Queue{
-		QueueName: goformation.Ref(QueueNameParameterName),
+		QueueName: params.QueueName,
 		Tags: append(tags, goformationtags.Tag{
 			Key:   "QueueType",
 			Value: "Main",
 		}),
-		ContentBasedDeduplication:     goformation.Ref(ContentBasedDeduplicationParameterName),
-		DelaySeconds:                  goformation.Ref(DelaySecondsParameterName),
-		FifoQueue:                     goformation.Ref(FifoQueueParameterName),
-		MaximumMessageSize:            goformation.Ref(MaximumMessageSizeParameterName),
-		MessageRetentionPeriod:        goformation.Ref(MessageRetentionPeriodParameterName),
-		ReceiveMessageWaitTimeSeconds: goformation.Ref(ReceiveMessageWaitTimeSecondsParameterName),
-		RedrivePolicy:                 goformation.Ref(SQSRedrivePolicyParameterName),
-		VisibilityTimeout:             goformation.Ref(VisibilityTimeoutParameterName),
+		ContentBasedDeduplication:     params.ContentBasedDeduplication,
+		DelaySeconds:                  params.DelaySeconds,
+		FifoQueue:                     params.FifoQueue,
+		MaximumMessageSize:            params.MaximumMessageSize,
+		MessageRetentionPeriod:        params.MessageRetentionPeriod,
+		ReceiveMessageWaitTimeSeconds: params.ReceiveMessageWaitTimeSeconds,
+		RedrivePolicy:                 redrivePolicy,
+		VisibilityTimeout:             params.VisibilityTimeout,
 	}
 
+	dlQueueName := fmt.Sprintf("%s-dl", params.QueueName)
 	template.Resources[SQSDLQResourceName] = &goformationsqs.Queue{
-		QueueName: goformation.Sub(fmt.Sprintf("${%s}-dl", QueueNameParameterName)),
+		QueueName: dlQueueName,
 		Tags: append(tags, goformationtags.Tag{
 			Key:   "QueueType",
 			Value: "Dead-Letter",
 		}),
-		FifoQueue:                 goformation.Ref(FifoQueueParameterName),
-		MessageRetentionPeriod:    goformation.Ref(MessageRetentionPeriodParameterName),
-		ContentBasedDeduplication: goformation.Ref(ContentBasedDeduplicationParameterName),
-		VisibilityTimeout:         goformation.Ref(VisibilityTimeoutParameterName),
+		FifoQueue:                 params.FifoQueue,
+		MessageRetentionPeriod:    params.MessageRetentionPeriod,
+		ContentBasedDeduplication: params.ContentBasedDeduplication,
+		VisibilityTimeout:         params.VisibilityTimeout,
 	}
 
 	template.Outputs[SQSOutputURL] = goformation.Output{
