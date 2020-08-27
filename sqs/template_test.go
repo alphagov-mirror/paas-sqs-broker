@@ -110,6 +110,71 @@ var _ = Describe("Template", func() {
 				Expect(queue.ContentBasedDeduplication).To(BeTrue())
 			})
 		})
+
+		Context("when delaySeconds is set", func() {
+			BeforeEach(func() {
+				params.DelaySeconds = 600
+			})
+			It("should set queue DelaySeconds from spec", func() {
+				Expect(queue.DelaySeconds).To(Equal(600))
+			})
+		})
+
+		Context("when fifoQueue is set", func() {
+			BeforeEach(func() {
+				params.FifoQueue = true
+			})
+			It("should set queue FifoQueue from spec", func() {
+				Expect(queue.FifoQueue).To(BeTrue())
+			})
+		})
+
+		Context("when maximumMessageSize is set", func() {
+			BeforeEach(func() {
+				params.MaximumMessageSize = 300
+			})
+			It("should set queue MaximumMessageSize from spec", func() {
+				Expect(queue.MaximumMessageSize).To(Equal(300))
+			})
+		})
+
+		Context("when messageRetentionPeriod is set", func() {
+			BeforeEach(func() {
+				params.MessageRetentionPeriod = 20
+			})
+			It("should set queue MessageRetentionPeriod from spec", func() {
+				Expect(queue.MessageRetentionPeriod).To(Equal(20))
+			})
+		})
+
+		Context("when receiveMessageWaitTimeSeconds is set", func() {
+			BeforeEach(func() {
+				params.ReceiveMessageWaitTimeSeconds = 1200
+			})
+			It("should set queue ReceiveMessageWaitTimeSeconds from spec", func() {
+				Expect(queue.ReceiveMessageWaitTimeSeconds).To(Equal(1200))
+			})
+		})
+
+		Context("when RedriveMaxReceiveCount is set", func() {
+			BeforeEach(func() {
+				params.RedriveMaxReceiveCount = 1
+			})
+			It("should set queue ContentBasedDeduplication from spec", func() {
+				policy, ok := queue.RedrivePolicy.(map[string]interface{})
+				Expect(ok).To(BeTrue())
+				Expect(policy["maxReceiveCount"]).To(Equal(1))
+			})
+		})
+
+		Context("when VisibilityTimeout is set", func() {
+			BeforeEach(func() {
+				params.VisibilityTimeout = 30
+			})
+			It("should set queue VisibilityTimeout from spec", func() {
+				Expect(queue.VisibilityTimeout).To(Equal(30))
+			})
+		})
 	})
 
 	It("should have outputs for connection details", func() {
