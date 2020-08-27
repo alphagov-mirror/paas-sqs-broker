@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -29,21 +30,37 @@ var (
 )
 
 type SQSProvider struct {
-	client sqs.Client
+	Environment string
+	client      sqs.Client
 }
 
-func NewSQSProvider(sqsClient sqs.Client) *SQSProvider {
+func NewSQSProvider(sqsClient sqs.Client, env string) *SQSProvider {
 	return &SQSProvider{
-		client: sqsClient,
+		Environment: env,
+		client:      sqsClient,
 	}
 }
 
 func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface.ProvisionData) (dashboardURL, operationData string, isAsync bool, err error) {
 
-	tmpl, err := sqs.QueueTemplate(sqs.QueueParams{
-		QueueName: "??",
-		FifoQueue: false, // set based on provisionData
-	})
+	params := sqs.QueueParams{}
+	if err := json.Unmarshal(provisionData.Details.RawParameters, &params); err != nil {
+		return "", "", false, err
+	}
+
+	params.Tags = map[string]string{
+		"Name":        provisionData.InstanceID,
+		"Service":     "sqs",
+		"Customer":    provisionData.Details.OrganizationGUID,
+		"Environment": s.Environment,
+	}
+	params.QueueName = s.getStackName(provisionData.InstanceID)
+
+	if provisionData.Plan.Name == "fifo" {
+		params.FifoQueue = true
+	}
+
+	tmpl, err := sqs.QueueTemplate(params)
 	if err != nil {
 		return "", "", false, err
 	}
@@ -53,27 +70,11 @@ func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface
 		return "", "", false, err
 	}
 
-	fifo := "false"
-	if provisionData.Plan.Name == "fifo" {
-		fifo = "true"
-	}
-
-	params := []*cloudformation.Parameter{
-		{
-			ParameterKey:   aws.String("QueueName"),
-			ParameterValue: aws.String(s.getStackName(provisionData.InstanceID)),
-		},
-		{
-			ParameterKey:   aws.String("FifoQueue"),
-			ParameterValue: aws.String(fifo),
-		},
-	}
-
 	_, err = s.client.CreateStackWithContext(ctx, &cloudformation.CreateStackInput{
 		Capabilities: capabilities,
 		TemplateBody: aws.String(string(yaml)),
 		StackName:    aws.String(s.getStackName(provisionData.InstanceID)),
-		Parameters:   params,
+		Parameters:   []*cloudformation.Parameter{},
 	})
 	if err != nil {
 		return "", "", false, err
@@ -153,7 +154,7 @@ func (s *SQSProvider) LastOperation(ctx context.Context, lastOperationData provi
 
 	switch *stack.StackStatus {
 	case cloudformation.StackStatusDeleteFailed, cloudformation.StackStatusCreateFailed, cloudformation.StackStatusRollbackFailed, cloudformation.StackStatusUpdateRollbackFailed, cloudformation.StackStatusRollbackComplete, cloudformation.StackStatusUpdateRollbackComplete:
-		return brokerapi.Succeeded, fmt.Sprintf("failed: %s", *stack.StackStatus), nil
+		return brokerapi.Failed, fmt.Sprintf("failed: %s", *stack.StackStatus), nil
 	case cloudformation.StackStatusCreateComplete, cloudformation.StackStatusUpdateComplete, cloudformation.StackStatusDeleteComplete:
 		return brokerapi.Succeeded, "ready", nil
 	default:
