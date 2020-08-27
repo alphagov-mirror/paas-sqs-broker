@@ -47,6 +47,7 @@ var _ = Describe("Template", func() {
 			})
 			It("should have a queue name prefixed with broker prefix", func() {
 				Expect(queue.QueueName).To(Equal("paas-sqs-broker-a"))
+				Expect(dlqueue.QueueName).To(Equal("paas-sqs-broker-a-dl"))
 			})
 
 		})
@@ -100,6 +101,12 @@ var _ = Describe("Template", func() {
 			Expect(queue.ReceiveMessageWaitTimeSeconds).To(BeZero())
 			Expect(queue.RedrivePolicy).To(BeEmpty())
 			Expect(queue.VisibilityTimeout).To(BeZero())
+
+
+			Expect(dlqueue.ContentBasedDeduplication).To(BeFalse())
+			Expect(dlqueue.FifoQueue).To(BeFalse())
+			Expect(dlqueue.MessageRetentionPeriod).To(BeZero())
+			Expect(dlqueue.VisibilityTimeout).To(BeZero())
 		})
 
 		Context("when contentBasedDeduplication is set", func() {
@@ -108,6 +115,7 @@ var _ = Describe("Template", func() {
 			})
 			It("should set queue ContentBasedDeduplication from spec", func() {
 				Expect(queue.ContentBasedDeduplication).To(BeTrue())
+				Expect(dlqueue.ContentBasedDeduplication).To(BeTrue())
 			})
 		})
 
@@ -126,6 +134,7 @@ var _ = Describe("Template", func() {
 			})
 			It("should set queue FifoQueue from spec", func() {
 				Expect(queue.FifoQueue).To(BeTrue())
+				Expect(dlqueue.FifoQueue).To(BeTrue())
 			})
 		})
 
@@ -144,6 +153,7 @@ var _ = Describe("Template", func() {
 			})
 			It("should set queue MessageRetentionPeriod from spec", func() {
 				Expect(queue.MessageRetentionPeriod).To(Equal(20))
+				Expect(dlqueue.MessageRetentionPeriod).To(Equal(20))
 			})
 		})
 
@@ -173,6 +183,7 @@ var _ = Describe("Template", func() {
 			})
 			It("should set queue VisibilityTimeout from spec", func() {
 				Expect(queue.VisibilityTimeout).To(Equal(30))
+				Expect(dlqueue.VisibilityTimeout).To(Equal(30))
 			})
 		})
 	})
