@@ -4,7 +4,7 @@ require (
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	github.com/alphagov/paas-service-broker-base v0.6.0
 	github.com/aws/aws-sdk-go v1.27.1
-	github.com/awslabs/goformation v1.4.1
+	github.com/awslabs/goformation v1.4.1 // indirect
 	github.com/awslabs/goformation/v4 v4.15.0
 	github.com/cloudfoundry-community/go-cfclient v0.0.0-20190808214049-35bcce23fc5f
 	github.com/olekukonko/tablewriter v0.0.4
