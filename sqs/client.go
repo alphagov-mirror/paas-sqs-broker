@@ -10,7 +10,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
 )
@@ -28,8 +27,6 @@ var (
 
 //go:generate counterfeiter -o fakes/fake_sqs_client.go . Client
 type Client interface {
-	DescribeStacksWithContext(context.Context, *cloudformation.DescribeStacksInput, ...request.Option) (*cloudformation.DescribeStacksOutput, error)
-	CreateStackWithContext(context.Context, *cloudformation.CreateStackInput, ...request.Option) (*cloudformation.CreateStackOutput, error)
 	DeleteStack(ctx context.Context, instanceID string) error
 	GetStackStatus(ctx context.Context, instanceID string) (string, error)
 	CreateStack(ctx context.Context, instanceID string, orgID string, params QueueParams) error
@@ -85,11 +82,6 @@ func NewSQSClient(
 		logger:            logger,
 		context:           ctx,
 	}
-}
-
-// TODO
-func (s *SQSClient) DescribeStacksWithContext(ctx aws.Context, input *cloudformation.DescribeStacksInput, opts ...request.Option) (*cloudformation.DescribeStacksOutput, error) {
-	return s.cfnClient.DescribeStacksWithContext(ctx, input, opts...)
 }
 
 func (s *SQSClient) CreateStack(ctx context.Context, instanceID string, orgID string, params QueueParams) error {

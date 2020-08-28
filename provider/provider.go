@@ -33,7 +33,6 @@ func NewSQSProvider(sqsClient sqs.Client, env string) *SQSProvider {
 }
 
 func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface.ProvisionData) (dashboardURL string, operationData string, isAsync bool, err error) {
-
 	params := sqs.QueueParams{} // TODO eww
 	if err := json.Unmarshal(provisionData.Details.RawParameters, &params); err != nil {
 		return "", "", false, err
