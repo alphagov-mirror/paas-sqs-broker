@@ -79,23 +79,23 @@ var _ = Describe("Provider", func() {
 			Expect(queue.FifoQueue).To(BeFalse())
 
 			// should have suitable tags set
-			Expect(queue.Tags).To(ContainElements(
-				goformationtags.Tag{
+			Expect(queue.Tags).To(And(
+				ContainElement(goformationtags.Tag{
 					Key:   "Name",
 					Value: provisionData.InstanceID,
-				},
-				goformationtags.Tag{
+				}),
+				ContainElement(goformationtags.Tag{
 					Key:   "Service",
 					Value: "sqs",
-				},
-				goformationtags.Tag{
+				}),
+				ContainElement(goformationtags.Tag{
 					Key:   "Customer",
 					Value: provisionData.Details.OrganizationGUID,
-				},
-				goformationtags.Tag{
+				}),
+				ContainElement(goformationtags.Tag{
 					Key:   "Environment",
 					Value: "test",
-				},
+				}),
 			))
 
 			// the queue resource should have had values from provisionData passed through

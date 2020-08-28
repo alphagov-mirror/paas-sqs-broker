@@ -58,7 +58,7 @@ func main() {
 		CloudFormation: cloudformation.New(sess, cfg),
 	}
 
-	sqsProvider := provider.NewSQSProvider(sqsClient)
+	sqsProvider := provider.NewSQSProvider(sqsClient, "TODO-this-environment")
 	if err != nil {
 		log.Fatalf("Error creating SQS Provider: %v\n", err)
 	}
