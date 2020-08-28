@@ -8,4 +8,5 @@ test:
 
 .PHONY: generate
 generate:
+	GOFLAGS=-mod=vendor counterfeiter -o sqs/fakes/fake_cfn_api.go vendor/github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface/ CloudFormationAPI
 	go generate ./...

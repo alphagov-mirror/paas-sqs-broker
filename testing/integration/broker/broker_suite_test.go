@@ -7,7 +7,6 @@ import (
 	"github.com/alphagov/paas-service-broker-base/broker"
 	"github.com/alphagov/paas-service-broker-base/testing/mock_locket_server"
 	"github.com/alphagov/paas-sqs-broker/sqs"
-	"github.com/alphagov/paas-sqs-broker/sqs/fakes"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,16 +25,6 @@ type SuiteData struct {
 func TestBroker(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Broker Suite")
-}
-
-func newAWSClient() sqs.Client {
-	if os.Getenv("AWS_INTEGRATION") == "true" {
-		return &sqs.AWSClient{}
-	} else {
-		// set dummy values when running against mock
-		os.Setenv("AWS_PRINCIPAL_PERMISSIONS_BOUNDARY_ARN", "dummy-value")
-		return &fakes.FakeClient{}
-	}
 }
 
 var _ = BeforeSuite(func() {

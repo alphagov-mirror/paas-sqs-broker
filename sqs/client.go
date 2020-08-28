@@ -9,20 +9,26 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/iam/iamiface"
-	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface"
+)
+
+var (
+	// ErrStackNotFound returned when stack does not exist, or has been deleted
+	ErrStackNotFound = fmt.Errorf("STACK_NOT_FOUND")
+	// NoExistErrMatch is a string to match if stack does not exist
+	NoExistErrMatch = "does not exist"
 )
 
 //go:generate counterfeiter -o fakes/fake_sqs_client.go . Client
 type Client interface {
-	DescribeStacksWithContext(aws.Context, *cloudformation.DescribeStacksInput, ...request.Option) (*cloudformation.DescribeStacksOutput, error)
+	DescribeStacksWithContext(context.Context, *cloudformation.DescribeStacksInput, ...request.Option) (*cloudformation.DescribeStacksOutput, error)
 	// DescribeStackEventsWithContext(aws.Context, *cloudformation.DescribeStackEventsInput, ...request.Option) (*cloudformation.DescribeStackEventsOutput, error)
-	CreateStackWithContext(aws.Context, *cloudformation.CreateStackInput, ...request.Option) (*cloudformation.CreateStackOutput, error)
-	UpdateStackWithContext(aws.Context, *cloudformation.UpdateStackInput, ...request.Option) (*cloudformation.UpdateStackOutput, error)
-	DeleteStackWithContext(aws.Context, *cloudformation.DeleteStackInput, ...request.Option) (*cloudformation.DeleteStackOutput, error)
+	CreateStackWithContext(context.Context, *cloudformation.CreateStackInput, ...request.Option) (*cloudformation.CreateStackOutput, error)
+	UpdateStackWithContext(context.Context, *cloudformation.UpdateStackInput, ...request.Option) (*cloudformation.UpdateStackOutput, error)
+	DeleteStack(ctx context.Context, instanceID string) error
 }
 
 type Config struct {
@@ -44,25 +50,21 @@ func NewSQSClientConfig(configJSON []byte) (*Config, error) {
 }
 
 type SQSClient struct {
-	bucketPrefix      string
+	resourcePrefix    string
 	iamUserPath       string
 	awsRegion         string
 	deployEnvironment string
 	timeout           time.Duration
-	sqsClient         sqsiface.SQSAPI
 	cfnClient         cloudformationiface.CloudFormationAPI
-	iamClient         iamiface.IAMAPI
 	logger            lager.Logger
 	context           context.Context
 }
 
 func NewSQSClient(
-	config *Config,
-	sqsClient sqsiface.SQSAPI,
-	cfnClient cloudformationiface.CloudFormationAPI,
-	iamClient iamiface.IAMAPI,
-	logger lager.Logger,
 	ctx context.Context,
+	config *Config,
+	cfnClient cloudformationiface.CloudFormationAPI,
+	logger lager.Logger,
 ) *SQSClient {
 	timeout := config.Timeout
 	if timeout == time.Duration(0) {
@@ -70,14 +72,12 @@ func NewSQSClient(
 	}
 
 	return &SQSClient{
-		bucketPrefix:      config.ResourcePrefix,
+		resourcePrefix:    config.ResourcePrefix,
 		iamUserPath:       fmt.Sprintf("/%s/", strings.Trim(config.IAMUserPath, "/")),
 		awsRegion:         config.AWSRegion,
 		deployEnvironment: config.DeployEnvironment,
 		timeout:           timeout,
-		sqsClient:         sqsClient,
 		cfnClient:         cfnClient,
-		iamClient:         iamClient,
 		logger:            logger,
 		context:           ctx,
 	}
@@ -96,8 +96,57 @@ func (s *SQSClient) UpdateStackWithContext(ctx aws.Context, input *cloudformatio
 	return s.cfnClient.UpdateStackWithContext(ctx, input, opts...)
 }
 
-func (s *SQSClient) DeleteStackWithContext(ctx aws.Context, input *cloudformation.DeleteStackInput, opts ...request.Option) (*cloudformation.DeleteStackOutput, error) {
-	return s.cfnClient.DeleteStackWithContext(ctx, input, opts...)
+func (s *SQSClient) DeleteStack(ctx context.Context, instanceID string) error {
+	stackName := s.getStackName(instanceID)
+	_, err := s.getStack(ctx, stackName)
+	if err != nil {
+		return err
+	}
+	s.cfnClient.DeleteStackWithContext(ctx, &cloudformation.DeleteStackInput{
+		StackName: aws.String(stackName),
+	})
+	return nil
+}
+
+func (s *SQSClient) getStack(ctx context.Context, stackName string) (*cloudformation.Stack, error) {
+	describeOutput, err := s.cfnClient.DescribeStacksWithContext(ctx, &cloudformation.DescribeStacksInput{
+		StackName: aws.String(stackName),
+	})
+	if err != nil {
+		if IsNotFoundError(err) {
+			return nil, ErrStackNotFound
+		}
+		return nil, err
+	}
+	if describeOutput == nil {
+		return nil, fmt.Errorf("describeOutput was nil, potential issue with AWS Client")
+	}
+	if len(describeOutput.Stacks) == 0 {
+		return nil, fmt.Errorf("describeOutput contained no Stacks, potential issue with AWS Client")
+	}
+	if len(describeOutput.Stacks) > 1 {
+		return nil, fmt.Errorf("describeOutput contained multiple Stacks which is unexpected when calling with StackName, potential issue with AWS Client")
+	}
+	state := describeOutput.Stacks[0]
+	if state.StackStatus == nil {
+		return nil, fmt.Errorf("describeOutput contained a nil StackStatus, potential issue with AWS Client")
+	}
+	return state, nil
+}
+
+func (s *SQSClient) getStackName(instanceID string) string {
+	return fmt.Sprintf("%s%s", s.resourcePrefix, instanceID)
+}
+
+func IsNotFoundError(err error) bool {
+	if awsErr, ok := err.(awserr.Error); ok {
+		if awsErr.Code() == "ResourceNotFoundException" {
+			return true
+		} else if awsErr.Code() == "ValidationError" && strings.Contains(awsErr.Message(), NoExistErrMatch) {
+			return true
+		}
+	}
+	return false
 }
 
 type AWSClient struct {

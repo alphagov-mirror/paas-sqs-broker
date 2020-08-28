@@ -183,15 +183,9 @@ var _ = Describe("Provider", func() {
 
 	Describe("Deprovision", func() {
 		It("errors when deleting a non-existent stack", func() {
-			fakeSQSClient.DescribeStacksWithContextReturnsOnCall(
+			fakeSQSClient.DeleteStackReturnsOnCall(
 				0,
-				&cloudformation.DescribeStacksOutput{
-					Stacks: []*cloudformation.Stack{},
-				},
-				&fakeClient.MockAWSError{
-					C:    "ValidationError",
-					M: "Stack with id paas-sqs-broker-09E1993E-62E2-4040-ADF2-4D3EC741EFE6 does not exist",
-				},
+				sqs.ErrStackNotFound,
 			)
 
 			deprovisionData := provideriface.DeprovisionData{
@@ -201,15 +195,6 @@ var _ = Describe("Provider", func() {
 			Expect(err).To(MatchError(brokerapi.ErrInstanceDoesNotExist))
 		})
 		It("deletes a cloudformation stack", func() {
-			fakeSQSClient.DescribeStacksWithContextReturnsOnCall(0, &cloudformation.DescribeStacksOutput{
-				Stacks: []*cloudformation.Stack{
-					{
-						StackName:   aws.String("some stack"),
-						StackStatus: aws.String(cloudformation.StackStatusCreateComplete),
-					},
-				},
-			}, nil)
-
 			deprovisionData := provideriface.DeprovisionData{
 				InstanceID: "09E1993E-62E2-4040-ADF2-4D3EC741EFE6",
 			}
@@ -218,10 +203,10 @@ var _ = Describe("Provider", func() {
 			Expect(operationData).To(Equal("deprovision"))
 			Expect(isAsync).To(BeTrue())
 
-			Expect(fakeSQSClient.DeleteStackWithContextCallCount()).To(Equal(1))
-			ctx, input, _ := fakeSQSClient.DeleteStackWithContextArgsForCall(0)
+			Expect(fakeSQSClient.DeleteStackCallCount()).To(Equal(1))
+			ctx, instanceID := fakeSQSClient.DeleteStackArgsForCall(0)
 			Expect(ctx).ToNot(BeNil())
-			Expect(input.StackName).To(Equal(aws.String(fmt.Sprintf("paas-sqs-broker-%s", deprovisionData.InstanceID))))
+			Expect(instanceID).To(Equal(deprovisionData.InstanceID))
 		})
 	})
 

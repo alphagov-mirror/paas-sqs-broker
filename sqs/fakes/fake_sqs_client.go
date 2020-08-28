@@ -26,20 +26,17 @@ type FakeClient struct {
 		result1 *cloudformation.CreateStackOutput
 		result2 error
 	}
-	DeleteStackWithContextStub        func(context.Context, *cloudformation.DeleteStackInput, ...request.Option) (*cloudformation.DeleteStackOutput, error)
-	deleteStackWithContextMutex       sync.RWMutex
-	deleteStackWithContextArgsForCall []struct {
+	DeleteStackStub        func(context.Context, string) error
+	deleteStackMutex       sync.RWMutex
+	deleteStackArgsForCall []struct {
 		arg1 context.Context
-		arg2 *cloudformation.DeleteStackInput
-		arg3 []request.Option
+		arg2 string
 	}
-	deleteStackWithContextReturns struct {
-		result1 *cloudformation.DeleteStackOutput
-		result2 error
+	deleteStackReturns struct {
+		result1 error
 	}
-	deleteStackWithContextReturnsOnCall map[int]struct {
-		result1 *cloudformation.DeleteStackOutput
-		result2 error
+	deleteStackReturnsOnCall map[int]struct {
+		result1 error
 	}
 	DescribeStacksWithContextStub        func(context.Context, *cloudformation.DescribeStacksInput, ...request.Option) (*cloudformation.DescribeStacksOutput, error)
 	describeStacksWithContextMutex       sync.RWMutex
@@ -140,69 +137,65 @@ func (fake *FakeClient) CreateStackWithContextReturnsOnCall(i int, result1 *clou
 	}{result1, result2}
 }
 
-func (fake *FakeClient) DeleteStackWithContext(arg1 context.Context, arg2 *cloudformation.DeleteStackInput, arg3 ...request.Option) (*cloudformation.DeleteStackOutput, error) {
-	fake.deleteStackWithContextMutex.Lock()
-	ret, specificReturn := fake.deleteStackWithContextReturnsOnCall[len(fake.deleteStackWithContextArgsForCall)]
-	fake.deleteStackWithContextArgsForCall = append(fake.deleteStackWithContextArgsForCall, struct {
+func (fake *FakeClient) DeleteStack(arg1 context.Context, arg2 string) error {
+	fake.deleteStackMutex.Lock()
+	ret, specificReturn := fake.deleteStackReturnsOnCall[len(fake.deleteStackArgsForCall)]
+	fake.deleteStackArgsForCall = append(fake.deleteStackArgsForCall, struct {
 		arg1 context.Context
-		arg2 *cloudformation.DeleteStackInput
-		arg3 []request.Option
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("DeleteStackWithContext", []interface{}{arg1, arg2, arg3})
-	fake.deleteStackWithContextMutex.Unlock()
-	if fake.DeleteStackWithContextStub != nil {
-		return fake.DeleteStackWithContextStub(arg1, arg2, arg3...)
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("DeleteStack", []interface{}{arg1, arg2})
+	fake.deleteStackMutex.Unlock()
+	if fake.DeleteStackStub != nil {
+		return fake.DeleteStackStub(arg1, arg2)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
-	fakeReturns := fake.deleteStackWithContextReturns
-	return fakeReturns.result1, fakeReturns.result2
+	fakeReturns := fake.deleteStackReturns
+	return fakeReturns.result1
 }
 
-func (fake *FakeClient) DeleteStackWithContextCallCount() int {
-	fake.deleteStackWithContextMutex.RLock()
-	defer fake.deleteStackWithContextMutex.RUnlock()
-	return len(fake.deleteStackWithContextArgsForCall)
+func (fake *FakeClient) DeleteStackCallCount() int {
+	fake.deleteStackMutex.RLock()
+	defer fake.deleteStackMutex.RUnlock()
+	return len(fake.deleteStackArgsForCall)
 }
 
-func (fake *FakeClient) DeleteStackWithContextCalls(stub func(context.Context, *cloudformation.DeleteStackInput, ...request.Option) (*cloudformation.DeleteStackOutput, error)) {
-	fake.deleteStackWithContextMutex.Lock()
-	defer fake.deleteStackWithContextMutex.Unlock()
-	fake.DeleteStackWithContextStub = stub
+func (fake *FakeClient) DeleteStackCalls(stub func(context.Context, string) error) {
+	fake.deleteStackMutex.Lock()
+	defer fake.deleteStackMutex.Unlock()
+	fake.DeleteStackStub = stub
 }
 
-func (fake *FakeClient) DeleteStackWithContextArgsForCall(i int) (context.Context, *cloudformation.DeleteStackInput, []request.Option) {
-	fake.deleteStackWithContextMutex.RLock()
-	defer fake.deleteStackWithContextMutex.RUnlock()
-	argsForCall := fake.deleteStackWithContextArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+func (fake *FakeClient) DeleteStackArgsForCall(i int) (context.Context, string) {
+	fake.deleteStackMutex.RLock()
+	defer fake.deleteStackMutex.RUnlock()
+	argsForCall := fake.deleteStackArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeClient) DeleteStackWithContextReturns(result1 *cloudformation.DeleteStackOutput, result2 error) {
-	fake.deleteStackWithContextMutex.Lock()
-	defer fake.deleteStackWithContextMutex.Unlock()
-	fake.DeleteStackWithContextStub = nil
-	fake.deleteStackWithContextReturns = struct {
-		result1 *cloudformation.DeleteStackOutput
-		result2 error
-	}{result1, result2}
+func (fake *FakeClient) DeleteStackReturns(result1 error) {
+	fake.deleteStackMutex.Lock()
+	defer fake.deleteStackMutex.Unlock()
+	fake.DeleteStackStub = nil
+	fake.deleteStackReturns = struct {
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeClient) DeleteStackWithContextReturnsOnCall(i int, result1 *cloudformation.DeleteStackOutput, result2 error) {
-	fake.deleteStackWithContextMutex.Lock()
-	defer fake.deleteStackWithContextMutex.Unlock()
-	fake.DeleteStackWithContextStub = nil
-	if fake.deleteStackWithContextReturnsOnCall == nil {
-		fake.deleteStackWithContextReturnsOnCall = make(map[int]struct {
-			result1 *cloudformation.DeleteStackOutput
-			result2 error
+func (fake *FakeClient) DeleteStackReturnsOnCall(i int, result1 error) {
+	fake.deleteStackMutex.Lock()
+	defer fake.deleteStackMutex.Unlock()
+	fake.DeleteStackStub = nil
+	if fake.deleteStackReturnsOnCall == nil {
+		fake.deleteStackReturnsOnCall = make(map[int]struct {
+			result1 error
 		})
 	}
-	fake.deleteStackWithContextReturnsOnCall[i] = struct {
-		result1 *cloudformation.DeleteStackOutput
-		result2 error
-	}{result1, result2}
+	fake.deleteStackReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeClient) DescribeStacksWithContext(arg1 context.Context, arg2 *cloudformation.DescribeStacksInput, arg3 ...request.Option) (*cloudformation.DescribeStacksOutput, error) {
@@ -340,8 +333,8 @@ func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	defer fake.invocationsMutex.RUnlock()
 	fake.createStackWithContextMutex.RLock()
 	defer fake.createStackWithContextMutex.RUnlock()
-	fake.deleteStackWithContextMutex.RLock()
-	defer fake.deleteStackWithContextMutex.RUnlock()
+	fake.deleteStackMutex.RLock()
+	defer fake.deleteStackMutex.RUnlock()
 	fake.describeStacksWithContextMutex.RLock()
 	defer fake.describeStacksWithContextMutex.RUnlock()
 	fake.updateStackWithContextMutex.RLock()

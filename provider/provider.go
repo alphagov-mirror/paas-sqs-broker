@@ -21,10 +21,6 @@ var (
 	capabilities = []*string{
 		aws.String("CAPABILITY_NAMED_IAM"),
 	}
-	// NoExistErrMatch is a string to match if stack does not exist
-	NoExistErrMatch = "does not exist"
-	// ErrStackNotFound returned when stack does not exist, or has been deleted
-	ErrStackNotFound = fmt.Errorf("STACK_NOT_FOUND")
 	// PollingInterval is the duration between calls to check state when waiting for apply/destroy to complete
 	PollingInterval = time.Second * 15
 )
@@ -84,31 +80,39 @@ func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface
 }
 
 func (s *SQSProvider) Deprovision(ctx context.Context, deprovisionData provideriface.DeprovisionData) (operationData string, isAsync bool, err error) {
-	stackName := s.getStackName(deprovisionData.InstanceID)
-	stack, err := s.getStack(ctx, stackName)
-	if err == ErrStackNotFound {
-		// resource is already deleted (or never existsed)
+	// stackName := s.getStackName(deprovisionData.InstanceID)
+	// stack, err := s.getStack(ctx, stackName)
+	// if err == ErrStackNotFound {
+	// 	// resource is already deleted (or never existsed)
+	// 	// so we're done here
+	// 	return "", false, brokerapi.ErrInstanceDoesNotExist
+	// } else if err != nil {
+	// 	// failed to get stack status
+	// 	return "", false, err // should this be async and checked later
+	// }
+	// if *stack.StackStatus == cloudformation.StackStatusDeleteComplete {
+	// 	// resource already deleted
+	// 	return "", false, nil
+	// }
+	// // trigger a delete unless we're already in a deleting state
+	// if *stack.StackStatus != cloudformation.StackStatusDeleteInProgress {
+	// 	_, err := s.client.DeleteStackWithContext(ctx, &cloudformation.DeleteStackInput{
+	// 		StackName: aws.String(stackName),
+	// 	})
+	// 	if err != nil {
+	// 		return "", false, err
+	// 	}
+	// }
+
+	err = s.client.DeleteStack(ctx, deprovisionData.InstanceID)
+
+	if err == sqs.ErrStackNotFound {
+		// resource is already deleted (or never existed)
 		// so we're done here
 		return "", false, brokerapi.ErrInstanceDoesNotExist
-	} else if err != nil {
-		// failed to get stack status
-		return "", false, err // should this be async and checked later
-	}
-	if *stack.StackStatus == cloudformation.StackStatusDeleteComplete {
-		// resource already deleted
-		return "", false, nil
-	}
-	// trigger a delete unless we're already in a deleting state
-	if *stack.StackStatus != cloudformation.StackStatusDeleteInProgress {
-		_, err := s.client.DeleteStackWithContext(ctx, &cloudformation.DeleteStackInput{
-			StackName: aws.String(stackName),
-		})
-		if err != nil {
-			return "", false, err
-		}
 	}
 
-	return "deprovision", true, nil
+	return "deprovision", true, err
 }
 
 func (s *SQSProvider) Bind(ctx context.Context, bindData provideriface.BindData) (
@@ -168,7 +172,7 @@ func (s *SQSProvider) getStack(ctx context.Context, stackName string) (*cloudfor
 	})
 	if err != nil {
 		if IsNotFoundError(err) {
-			return nil, ErrStackNotFound
+			return nil, sqs.ErrStackNotFound
 		}
 		return nil, err
 	}
@@ -196,7 +200,7 @@ func IsNotFoundError(err error) bool {
 	if awsErr, ok := err.(awserr.Error); ok {
 		if awsErr.Code() == "ResourceNotFoundException" {
 			return true
-		} else if awsErr.Code() == "ValidationError" && strings.Contains(awsErr.Message(), NoExistErrMatch) {
+		} else if awsErr.Code() == "ValidationError" && strings.Contains(awsErr.Message(), sqs.NoExistErrMatch) {
 			return true
 		}
 	}

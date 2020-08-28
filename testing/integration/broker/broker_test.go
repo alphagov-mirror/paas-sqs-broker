@@ -11,8 +11,6 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
-	aws_sqs "github.com/aws/aws-sdk-go/service/sqs"
 	cfn "github.com/aws/aws-sdk-go/service/cloudformation"
 
 	"code.cloudfoundry.org/lager"
@@ -99,7 +97,7 @@ func initialise() (*sqs.Config, brokertesting.BrokerTester) {
 	logger.RegisterSink(lager.NewWriterSink(GinkgoWriter, config.API.LagerLogLevel))
 
 	sess := session.Must(session.NewSession(&aws.Config{Region: aws.String(sqsClientConfig.AWSRegion)}))
-	sqsClient := sqs.NewSQSClient(sqsClientConfig, aws_sqs.New(sess), cfn.New(sess), iam.New(sess), logger, context.Background())
+	sqsClient := sqs.NewSQSClient(context.Background(), sqsClientConfig, cfn.New(sess), logger)
 
 	sqsProvider := provider.NewSQSProvider(sqsClient, "test")
 

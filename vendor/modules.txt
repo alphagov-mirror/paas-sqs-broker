@@ -28,6 +28,7 @@ github.com/Masterminds/semver
 # github.com/alphagov/paas-service-broker-base v0.6.0
 github.com/alphagov/paas-service-broker-base/broker
 github.com/alphagov/paas-service-broker-base/provider
+github.com/alphagov/paas-service-broker-base/testing
 github.com/alphagov/paas-service-broker-base/testing/mock_locket_server
 # github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da
 github.com/armon/go-metrics
@@ -64,10 +65,16 @@ github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 github.com/aws/aws-sdk-go/private/protocol/rest
 github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/service/cloudformation
+github.com/aws/aws-sdk-go/service/cloudformation/cloudformationiface
 github.com/aws/aws-sdk-go/service/costexplorer
+github.com/aws/aws-sdk-go/service/iam
+github.com/aws/aws-sdk-go/service/iam/iamiface
+github.com/aws/aws-sdk-go/service/sqs
+github.com/aws/aws-sdk-go/service/sqs/sqsiface
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
 # github.com/awslabs/goformation/v4 v4.15.0
+github.com/awslabs/goformation/v4
 github.com/awslabs/goformation/v4/cloudformation
 github.com/awslabs/goformation/v4/cloudformation/accessanalyzer
 github.com/awslabs/goformation/v4/cloudformation/acmpca
@@ -245,6 +252,7 @@ github.com/olekukonko/tablewriter
 # github.com/onsi/ginkgo v1.8.0
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
+github.com/onsi/ginkgo/extensions/table
 github.com/onsi/ginkgo/internal/codelocation
 github.com/onsi/ginkgo/internal/containernode
 github.com/onsi/ginkgo/internal/failer
