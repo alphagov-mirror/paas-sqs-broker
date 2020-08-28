@@ -6,25 +6,22 @@ import (
 	"sync"
 
 	"github.com/alphagov/paas-sqs-broker/sqs"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
 )
 
 type FakeClient struct {
-	CreateStackWithContextStub        func(context.Context, *cloudformation.CreateStackInput, ...request.Option) (*cloudformation.CreateStackOutput, error)
-	createStackWithContextMutex       sync.RWMutex
-	createStackWithContextArgsForCall []struct {
+	CreateStackStub        func(context.Context, string, string, sqs.QueueParams) error
+	createStackMutex       sync.RWMutex
+	createStackArgsForCall []struct {
 		arg1 context.Context
-		arg2 *cloudformation.CreateStackInput
-		arg3 []request.Option
+		arg2 string
+		arg3 string
+		arg4 sqs.QueueParams
 	}
-	createStackWithContextReturns struct {
-		result1 *cloudformation.CreateStackOutput
-		result2 error
+	createStackReturns struct {
+		result1 error
 	}
-	createStackWithContextReturnsOnCall map[int]struct {
-		result1 *cloudformation.CreateStackOutput
-		result2 error
+	createStackReturnsOnCall map[int]struct {
+		result1 error
 	}
 	DeleteStackStub        func(context.Context, string) error
 	deleteStackMutex       sync.RWMutex
@@ -38,103 +35,85 @@ type FakeClient struct {
 	deleteStackReturnsOnCall map[int]struct {
 		result1 error
 	}
-	DescribeStacksWithContextStub        func(context.Context, *cloudformation.DescribeStacksInput, ...request.Option) (*cloudformation.DescribeStacksOutput, error)
-	describeStacksWithContextMutex       sync.RWMutex
-	describeStacksWithContextArgsForCall []struct {
+	GetStackStatusStub        func(context.Context, string) (string, error)
+	getStackStatusMutex       sync.RWMutex
+	getStackStatusArgsForCall []struct {
 		arg1 context.Context
-		arg2 *cloudformation.DescribeStacksInput
-		arg3 []request.Option
+		arg2 string
 	}
-	describeStacksWithContextReturns struct {
-		result1 *cloudformation.DescribeStacksOutput
+	getStackStatusReturns struct {
+		result1 string
 		result2 error
 	}
-	describeStacksWithContextReturnsOnCall map[int]struct {
-		result1 *cloudformation.DescribeStacksOutput
-		result2 error
-	}
-	UpdateStackWithContextStub        func(context.Context, *cloudformation.UpdateStackInput, ...request.Option) (*cloudformation.UpdateStackOutput, error)
-	updateStackWithContextMutex       sync.RWMutex
-	updateStackWithContextArgsForCall []struct {
-		arg1 context.Context
-		arg2 *cloudformation.UpdateStackInput
-		arg3 []request.Option
-	}
-	updateStackWithContextReturns struct {
-		result1 *cloudformation.UpdateStackOutput
-		result2 error
-	}
-	updateStackWithContextReturnsOnCall map[int]struct {
-		result1 *cloudformation.UpdateStackOutput
+	getStackStatusReturnsOnCall map[int]struct {
+		result1 string
 		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeClient) CreateStackWithContext(arg1 context.Context, arg2 *cloudformation.CreateStackInput, arg3 ...request.Option) (*cloudformation.CreateStackOutput, error) {
-	fake.createStackWithContextMutex.Lock()
-	ret, specificReturn := fake.createStackWithContextReturnsOnCall[len(fake.createStackWithContextArgsForCall)]
-	fake.createStackWithContextArgsForCall = append(fake.createStackWithContextArgsForCall, struct {
+func (fake *FakeClient) CreateStack(arg1 context.Context, arg2 string, arg3 string, arg4 sqs.QueueParams) error {
+	fake.createStackMutex.Lock()
+	ret, specificReturn := fake.createStackReturnsOnCall[len(fake.createStackArgsForCall)]
+	fake.createStackArgsForCall = append(fake.createStackArgsForCall, struct {
 		arg1 context.Context
-		arg2 *cloudformation.CreateStackInput
-		arg3 []request.Option
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("CreateStackWithContext", []interface{}{arg1, arg2, arg3})
-	fake.createStackWithContextMutex.Unlock()
-	if fake.CreateStackWithContextStub != nil {
-		return fake.CreateStackWithContextStub(arg1, arg2, arg3...)
+		arg2 string
+		arg3 string
+		arg4 sqs.QueueParams
+	}{arg1, arg2, arg3, arg4})
+	fake.recordInvocation("CreateStack", []interface{}{arg1, arg2, arg3, arg4})
+	fake.createStackMutex.Unlock()
+	if fake.CreateStackStub != nil {
+		return fake.CreateStackStub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
-		return ret.result1, ret.result2
+		return ret.result1
 	}
-	fakeReturns := fake.createStackWithContextReturns
-	return fakeReturns.result1, fakeReturns.result2
+	fakeReturns := fake.createStackReturns
+	return fakeReturns.result1
 }
 
-func (fake *FakeClient) CreateStackWithContextCallCount() int {
-	fake.createStackWithContextMutex.RLock()
-	defer fake.createStackWithContextMutex.RUnlock()
-	return len(fake.createStackWithContextArgsForCall)
+func (fake *FakeClient) CreateStackCallCount() int {
+	fake.createStackMutex.RLock()
+	defer fake.createStackMutex.RUnlock()
+	return len(fake.createStackArgsForCall)
 }
 
-func (fake *FakeClient) CreateStackWithContextCalls(stub func(context.Context, *cloudformation.CreateStackInput, ...request.Option) (*cloudformation.CreateStackOutput, error)) {
-	fake.createStackWithContextMutex.Lock()
-	defer fake.createStackWithContextMutex.Unlock()
-	fake.CreateStackWithContextStub = stub
+func (fake *FakeClient) CreateStackCalls(stub func(context.Context, string, string, sqs.QueueParams) error) {
+	fake.createStackMutex.Lock()
+	defer fake.createStackMutex.Unlock()
+	fake.CreateStackStub = stub
 }
 
-func (fake *FakeClient) CreateStackWithContextArgsForCall(i int) (context.Context, *cloudformation.CreateStackInput, []request.Option) {
-	fake.createStackWithContextMutex.RLock()
-	defer fake.createStackWithContextMutex.RUnlock()
-	argsForCall := fake.createStackWithContextArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+func (fake *FakeClient) CreateStackArgsForCall(i int) (context.Context, string, string, sqs.QueueParams) {
+	fake.createStackMutex.RLock()
+	defer fake.createStackMutex.RUnlock()
+	argsForCall := fake.createStackArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4
 }
 
-func (fake *FakeClient) CreateStackWithContextReturns(result1 *cloudformation.CreateStackOutput, result2 error) {
-	fake.createStackWithContextMutex.Lock()
-	defer fake.createStackWithContextMutex.Unlock()
-	fake.CreateStackWithContextStub = nil
-	fake.createStackWithContextReturns = struct {
-		result1 *cloudformation.CreateStackOutput
-		result2 error
-	}{result1, result2}
+func (fake *FakeClient) CreateStackReturns(result1 error) {
+	fake.createStackMutex.Lock()
+	defer fake.createStackMutex.Unlock()
+	fake.CreateStackStub = nil
+	fake.createStackReturns = struct {
+		result1 error
+	}{result1}
 }
 
-func (fake *FakeClient) CreateStackWithContextReturnsOnCall(i int, result1 *cloudformation.CreateStackOutput, result2 error) {
-	fake.createStackWithContextMutex.Lock()
-	defer fake.createStackWithContextMutex.Unlock()
-	fake.CreateStackWithContextStub = nil
-	if fake.createStackWithContextReturnsOnCall == nil {
-		fake.createStackWithContextReturnsOnCall = make(map[int]struct {
-			result1 *cloudformation.CreateStackOutput
-			result2 error
+func (fake *FakeClient) CreateStackReturnsOnCall(i int, result1 error) {
+	fake.createStackMutex.Lock()
+	defer fake.createStackMutex.Unlock()
+	fake.CreateStackStub = nil
+	if fake.createStackReturnsOnCall == nil {
+		fake.createStackReturnsOnCall = make(map[int]struct {
+			result1 error
 		})
 	}
-	fake.createStackWithContextReturnsOnCall[i] = struct {
-		result1 *cloudformation.CreateStackOutput
-		result2 error
-	}{result1, result2}
+	fake.createStackReturnsOnCall[i] = struct {
+		result1 error
+	}{result1}
 }
 
 func (fake *FakeClient) DeleteStack(arg1 context.Context, arg2 string) error {
@@ -198,132 +177,66 @@ func (fake *FakeClient) DeleteStackReturnsOnCall(i int, result1 error) {
 	}{result1}
 }
 
-func (fake *FakeClient) DescribeStacksWithContext(arg1 context.Context, arg2 *cloudformation.DescribeStacksInput, arg3 ...request.Option) (*cloudformation.DescribeStacksOutput, error) {
-	fake.describeStacksWithContextMutex.Lock()
-	ret, specificReturn := fake.describeStacksWithContextReturnsOnCall[len(fake.describeStacksWithContextArgsForCall)]
-	fake.describeStacksWithContextArgsForCall = append(fake.describeStacksWithContextArgsForCall, struct {
+func (fake *FakeClient) GetStackStatus(arg1 context.Context, arg2 string) (string, error) {
+	fake.getStackStatusMutex.Lock()
+	ret, specificReturn := fake.getStackStatusReturnsOnCall[len(fake.getStackStatusArgsForCall)]
+	fake.getStackStatusArgsForCall = append(fake.getStackStatusArgsForCall, struct {
 		arg1 context.Context
-		arg2 *cloudformation.DescribeStacksInput
-		arg3 []request.Option
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("DescribeStacksWithContext", []interface{}{arg1, arg2, arg3})
-	fake.describeStacksWithContextMutex.Unlock()
-	if fake.DescribeStacksWithContextStub != nil {
-		return fake.DescribeStacksWithContextStub(arg1, arg2, arg3...)
+		arg2 string
+	}{arg1, arg2})
+	fake.recordInvocation("GetStackStatus", []interface{}{arg1, arg2})
+	fake.getStackStatusMutex.Unlock()
+	if fake.GetStackStatusStub != nil {
+		return fake.GetStackStatusStub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	fakeReturns := fake.describeStacksWithContextReturns
+	fakeReturns := fake.getStackStatusReturns
 	return fakeReturns.result1, fakeReturns.result2
 }
 
-func (fake *FakeClient) DescribeStacksWithContextCallCount() int {
-	fake.describeStacksWithContextMutex.RLock()
-	defer fake.describeStacksWithContextMutex.RUnlock()
-	return len(fake.describeStacksWithContextArgsForCall)
+func (fake *FakeClient) GetStackStatusCallCount() int {
+	fake.getStackStatusMutex.RLock()
+	defer fake.getStackStatusMutex.RUnlock()
+	return len(fake.getStackStatusArgsForCall)
 }
 
-func (fake *FakeClient) DescribeStacksWithContextCalls(stub func(context.Context, *cloudformation.DescribeStacksInput, ...request.Option) (*cloudformation.DescribeStacksOutput, error)) {
-	fake.describeStacksWithContextMutex.Lock()
-	defer fake.describeStacksWithContextMutex.Unlock()
-	fake.DescribeStacksWithContextStub = stub
+func (fake *FakeClient) GetStackStatusCalls(stub func(context.Context, string) (string, error)) {
+	fake.getStackStatusMutex.Lock()
+	defer fake.getStackStatusMutex.Unlock()
+	fake.GetStackStatusStub = stub
 }
 
-func (fake *FakeClient) DescribeStacksWithContextArgsForCall(i int) (context.Context, *cloudformation.DescribeStacksInput, []request.Option) {
-	fake.describeStacksWithContextMutex.RLock()
-	defer fake.describeStacksWithContextMutex.RUnlock()
-	argsForCall := fake.describeStacksWithContextArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
+func (fake *FakeClient) GetStackStatusArgsForCall(i int) (context.Context, string) {
+	fake.getStackStatusMutex.RLock()
+	defer fake.getStackStatusMutex.RUnlock()
+	argsForCall := fake.getStackStatusArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
 }
 
-func (fake *FakeClient) DescribeStacksWithContextReturns(result1 *cloudformation.DescribeStacksOutput, result2 error) {
-	fake.describeStacksWithContextMutex.Lock()
-	defer fake.describeStacksWithContextMutex.Unlock()
-	fake.DescribeStacksWithContextStub = nil
-	fake.describeStacksWithContextReturns = struct {
-		result1 *cloudformation.DescribeStacksOutput
+func (fake *FakeClient) GetStackStatusReturns(result1 string, result2 error) {
+	fake.getStackStatusMutex.Lock()
+	defer fake.getStackStatusMutex.Unlock()
+	fake.GetStackStatusStub = nil
+	fake.getStackStatusReturns = struct {
+		result1 string
 		result2 error
 	}{result1, result2}
 }
 
-func (fake *FakeClient) DescribeStacksWithContextReturnsOnCall(i int, result1 *cloudformation.DescribeStacksOutput, result2 error) {
-	fake.describeStacksWithContextMutex.Lock()
-	defer fake.describeStacksWithContextMutex.Unlock()
-	fake.DescribeStacksWithContextStub = nil
-	if fake.describeStacksWithContextReturnsOnCall == nil {
-		fake.describeStacksWithContextReturnsOnCall = make(map[int]struct {
-			result1 *cloudformation.DescribeStacksOutput
+func (fake *FakeClient) GetStackStatusReturnsOnCall(i int, result1 string, result2 error) {
+	fake.getStackStatusMutex.Lock()
+	defer fake.getStackStatusMutex.Unlock()
+	fake.GetStackStatusStub = nil
+	if fake.getStackStatusReturnsOnCall == nil {
+		fake.getStackStatusReturnsOnCall = make(map[int]struct {
+			result1 string
 			result2 error
 		})
 	}
-	fake.describeStacksWithContextReturnsOnCall[i] = struct {
-		result1 *cloudformation.DescribeStacksOutput
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) UpdateStackWithContext(arg1 context.Context, arg2 *cloudformation.UpdateStackInput, arg3 ...request.Option) (*cloudformation.UpdateStackOutput, error) {
-	fake.updateStackWithContextMutex.Lock()
-	ret, specificReturn := fake.updateStackWithContextReturnsOnCall[len(fake.updateStackWithContextArgsForCall)]
-	fake.updateStackWithContextArgsForCall = append(fake.updateStackWithContextArgsForCall, struct {
-		arg1 context.Context
-		arg2 *cloudformation.UpdateStackInput
-		arg3 []request.Option
-	}{arg1, arg2, arg3})
-	fake.recordInvocation("UpdateStackWithContext", []interface{}{arg1, arg2, arg3})
-	fake.updateStackWithContextMutex.Unlock()
-	if fake.UpdateStackWithContextStub != nil {
-		return fake.UpdateStackWithContextStub(arg1, arg2, arg3...)
-	}
-	if specificReturn {
-		return ret.result1, ret.result2
-	}
-	fakeReturns := fake.updateStackWithContextReturns
-	return fakeReturns.result1, fakeReturns.result2
-}
-
-func (fake *FakeClient) UpdateStackWithContextCallCount() int {
-	fake.updateStackWithContextMutex.RLock()
-	defer fake.updateStackWithContextMutex.RUnlock()
-	return len(fake.updateStackWithContextArgsForCall)
-}
-
-func (fake *FakeClient) UpdateStackWithContextCalls(stub func(context.Context, *cloudformation.UpdateStackInput, ...request.Option) (*cloudformation.UpdateStackOutput, error)) {
-	fake.updateStackWithContextMutex.Lock()
-	defer fake.updateStackWithContextMutex.Unlock()
-	fake.UpdateStackWithContextStub = stub
-}
-
-func (fake *FakeClient) UpdateStackWithContextArgsForCall(i int) (context.Context, *cloudformation.UpdateStackInput, []request.Option) {
-	fake.updateStackWithContextMutex.RLock()
-	defer fake.updateStackWithContextMutex.RUnlock()
-	argsForCall := fake.updateStackWithContextArgsForCall[i]
-	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
-}
-
-func (fake *FakeClient) UpdateStackWithContextReturns(result1 *cloudformation.UpdateStackOutput, result2 error) {
-	fake.updateStackWithContextMutex.Lock()
-	defer fake.updateStackWithContextMutex.Unlock()
-	fake.UpdateStackWithContextStub = nil
-	fake.updateStackWithContextReturns = struct {
-		result1 *cloudformation.UpdateStackOutput
-		result2 error
-	}{result1, result2}
-}
-
-func (fake *FakeClient) UpdateStackWithContextReturnsOnCall(i int, result1 *cloudformation.UpdateStackOutput, result2 error) {
-	fake.updateStackWithContextMutex.Lock()
-	defer fake.updateStackWithContextMutex.Unlock()
-	fake.UpdateStackWithContextStub = nil
-	if fake.updateStackWithContextReturnsOnCall == nil {
-		fake.updateStackWithContextReturnsOnCall = make(map[int]struct {
-			result1 *cloudformation.UpdateStackOutput
-			result2 error
-		})
-	}
-	fake.updateStackWithContextReturnsOnCall[i] = struct {
-		result1 *cloudformation.UpdateStackOutput
+	fake.getStackStatusReturnsOnCall[i] = struct {
+		result1 string
 		result2 error
 	}{result1, result2}
 }
@@ -331,14 +244,12 @@ func (fake *FakeClient) UpdateStackWithContextReturnsOnCall(i int, result1 *clou
 func (fake *FakeClient) Invocations() map[string][][]interface{} {
 	fake.invocationsMutex.RLock()
 	defer fake.invocationsMutex.RUnlock()
-	fake.createStackWithContextMutex.RLock()
-	defer fake.createStackWithContextMutex.RUnlock()
+	fake.createStackMutex.RLock()
+	defer fake.createStackMutex.RUnlock()
 	fake.deleteStackMutex.RLock()
 	defer fake.deleteStackMutex.RUnlock()
-	fake.describeStacksWithContextMutex.RLock()
-	defer fake.describeStacksWithContextMutex.RUnlock()
-	fake.updateStackWithContextMutex.RLock()
-	defer fake.updateStackWithContextMutex.RUnlock()
+	fake.getStackStatusMutex.RLock()
+	defer fake.getStackStatusMutex.RUnlock()
 	copiedInvocations := map[string][][]interface{}{}
 	for key, value := range fake.invocations {
 		copiedInvocations[key] = value
