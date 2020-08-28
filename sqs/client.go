@@ -25,10 +25,9 @@ var (
 //go:generate counterfeiter -o fakes/fake_sqs_client.go . Client
 type Client interface {
 	DescribeStacksWithContext(context.Context, *cloudformation.DescribeStacksInput, ...request.Option) (*cloudformation.DescribeStacksOutput, error)
-	// DescribeStackEventsWithContext(aws.Context, *cloudformation.DescribeStackEventsInput, ...request.Option) (*cloudformation.DescribeStackEventsOutput, error)
 	CreateStackWithContext(context.Context, *cloudformation.CreateStackInput, ...request.Option) (*cloudformation.CreateStackOutput, error)
-	UpdateStackWithContext(context.Context, *cloudformation.UpdateStackInput, ...request.Option) (*cloudformation.UpdateStackOutput, error)
 	DeleteStack(ctx context.Context, instanceID string) error
+	GetStackStatus(ctx context.Context, instanceID string) (string, error)
 }
 
 type Config struct {
@@ -92,10 +91,6 @@ func (s *SQSClient) CreateStackWithContext(ctx aws.Context, input *cloudformatio
 	return s.cfnClient.CreateStackWithContext(ctx, input, opts...)
 }
 
-func (s *SQSClient) UpdateStackWithContext(ctx aws.Context, input *cloudformation.UpdateStackInput, opts ...request.Option) (*cloudformation.UpdateStackOutput, error) {
-	return s.cfnClient.UpdateStackWithContext(ctx, input, opts...)
-}
-
 func (s *SQSClient) DeleteStack(ctx context.Context, instanceID string) error {
 	stackName := s.getStackName(instanceID)
 	_, err := s.getStack(ctx, stackName)
@@ -106,6 +101,15 @@ func (s *SQSClient) DeleteStack(ctx context.Context, instanceID string) error {
 		StackName: aws.String(stackName),
 	})
 	return nil
+}
+
+func (s *SQSClient) GetStackStatus(ctx context.Context, instanceID string) (string, error) {
+	stackName := s.getStackName(instanceID)
+	stack, err := s.getStack(ctx, stackName)
+	if err != nil {
+		return "", err
+	}
+	return *stack.StackStatus, err
 }
 
 func (s *SQSClient) getStack(ctx context.Context, stackName string) (*cloudformation.Stack, error) {

@@ -150,46 +150,18 @@ func (s *SQSProvider) Update(ctx context.Context, updateData provideriface.Updat
 }
 
 func (s *SQSProvider) LastOperation(ctx context.Context, lastOperationData provideriface.LastOperationData) (state brokerapi.LastOperationState, description string, err error) {
-	stackName := s.getStackName(lastOperationData.InstanceID)
-	stack, err := s.getStack(ctx, stackName)
+	status, err := s.client.GetStackStatus(ctx, lastOperationData.InstanceID)
 	if err != nil {
 		return "", "", err
 	}
-
-	switch *stack.StackStatus {
+	switch status {
 	case cloudformation.StackStatusDeleteFailed, cloudformation.StackStatusCreateFailed, cloudformation.StackStatusRollbackFailed, cloudformation.StackStatusUpdateRollbackFailed, cloudformation.StackStatusRollbackComplete, cloudformation.StackStatusUpdateRollbackComplete:
-		return brokerapi.Failed, fmt.Sprintf("failed: %s", *stack.StackStatus), nil
+		return brokerapi.Failed, fmt.Sprintf("failed: %s", status), nil
 	case cloudformation.StackStatusCreateComplete, cloudformation.StackStatusUpdateComplete, cloudformation.StackStatusDeleteComplete:
 		return brokerapi.Succeeded, "ready", nil
 	default:
 		return brokerapi.InProgress, "pending", nil
 	}
-}
-
-func (s *SQSProvider) getStack(ctx context.Context, stackName string) (*cloudformation.Stack, error) {
-	describeOutput, err := s.client.DescribeStacksWithContext(ctx, &cloudformation.DescribeStacksInput{
-		StackName: aws.String(stackName),
-	})
-	if err != nil {
-		if IsNotFoundError(err) {
-			return nil, sqs.ErrStackNotFound
-		}
-		return nil, err
-	}
-	if describeOutput == nil {
-		return nil, fmt.Errorf("describeOutput was nil, potential issue with AWS Client")
-	}
-	if len(describeOutput.Stacks) == 0 {
-		return nil, fmt.Errorf("describeOutput contained no Stacks, potential issue with AWS Client")
-	}
-	if len(describeOutput.Stacks) > 1 {
-		return nil, fmt.Errorf("describeOutput contained multiple Stacks which is unexpected when calling with StackName, potential issue with AWS Client")
-	}
-	state := describeOutput.Stacks[0]
-	if state.StackStatus == nil {
-		return nil, fmt.Errorf("describeOutput contained a nil StackStatus, potential issue with AWS Client")
-	}
-	return state, nil
 }
 
 func (s *SQSProvider) getStackName(instanceID string) string {
