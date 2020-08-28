@@ -10,17 +10,12 @@ import (
 
 	provideriface "github.com/alphagov/paas-service-broker-base/provider"
 	"github.com/alphagov/paas-sqs-broker/sqs"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/pivotal-cf/brokerapi"
 )
 
 var (
-	// capabilities required by cloudformation
-	capabilities = []*string{
-		aws.String("CAPABILITY_NAMED_IAM"),
-	}
 	// PollingInterval is the duration between calls to check state when waiting for apply/destroy to complete
 	PollingInterval = time.Second * 15
 )
@@ -37,9 +32,9 @@ func NewSQSProvider(sqsClient sqs.Client, env string) *SQSProvider {
 	}
 }
 
-func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface.ProvisionData) (dashboardURL, operationData string, isAsync bool, err error) {
+func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface.ProvisionData) (dashboardURL string, operationData string, isAsync bool, err error) {
 
-	params := sqs.QueueParams{}
+	params := sqs.QueueParams{} // TODO eww
 	if err := json.Unmarshal(provisionData.Details.RawParameters, &params); err != nil {
 		return "", "", false, err
 	}
@@ -50,32 +45,15 @@ func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface
 		"Customer":    provisionData.Details.OrganizationGUID,
 		"Environment": s.Environment,
 	}
-	params.QueueName = s.getStackName(provisionData.InstanceID)
 
 	if provisionData.Plan.Name == "fifo" {
 		params.FifoQueue = true
 	}
 
-	tmpl, err := sqs.QueueTemplate(params)
+	err = s.client.CreateStack(ctx, provisionData.InstanceID, provisionData.Details.OrganizationGUID, params)
 	if err != nil {
-		return "", "", false, err
+		return "", "", false, err // TODO
 	}
-
-	yaml, err := tmpl.YAML()
-	if err != nil {
-		return "", "", false, err
-	}
-
-	_, err = s.client.CreateStackWithContext(ctx, &cloudformation.CreateStackInput{
-		Capabilities: capabilities,
-		TemplateBody: aws.String(string(yaml)),
-		StackName:    aws.String(s.getStackName(provisionData.InstanceID)),
-		Parameters:   []*cloudformation.Parameter{},
-	})
-	if err != nil {
-		return "", "", false, err
-	}
-
 	return "", "provision", true, nil
 }
 
@@ -162,10 +140,6 @@ func (s *SQSProvider) LastOperation(ctx context.Context, lastOperationData provi
 	default:
 		return brokerapi.InProgress, "pending", nil
 	}
-}
-
-func (s *SQSProvider) getStackName(instanceID string) string {
-	return fmt.Sprintf("paas-sqs-broker-%s", instanceID)
 }
 
 func IsNotFoundError(err error) bool {

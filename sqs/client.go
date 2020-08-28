@@ -20,6 +20,10 @@ var (
 	ErrStackNotFound = fmt.Errorf("STACK_NOT_FOUND")
 	// NoExistErrMatch is a string to match if stack does not exist
 	NoExistErrMatch = "does not exist"
+	// capabilities required by cloudformation
+	capabilities = []*string{
+		aws.String("CAPABILITY_NAMED_IAM"),
+	}
 )
 
 //go:generate counterfeiter -o fakes/fake_sqs_client.go . Client
@@ -28,6 +32,7 @@ type Client interface {
 	CreateStackWithContext(context.Context, *cloudformation.CreateStackInput, ...request.Option) (*cloudformation.CreateStackOutput, error)
 	DeleteStack(ctx context.Context, instanceID string) error
 	GetStackStatus(ctx context.Context, instanceID string) (string, error)
+	CreateStack(ctx context.Context, instanceID string, orgID string, params QueueParams) error
 }
 
 type Config struct {
@@ -87,8 +92,29 @@ func (s *SQSClient) DescribeStacksWithContext(ctx aws.Context, input *cloudforma
 	return s.cfnClient.DescribeStacksWithContext(ctx, input, opts...)
 }
 
-func (s *SQSClient) CreateStackWithContext(ctx aws.Context, input *cloudformation.CreateStackInput, opts ...request.Option) (*cloudformation.CreateStackOutput, error) {
-	return s.cfnClient.CreateStackWithContext(ctx, input, opts...)
+func (s *SQSClient) CreateStack(ctx context.Context, instanceID string, orgID string, params QueueParams) error {
+	params.QueueName = s.getStackName(instanceID)
+
+	tmpl, err := QueueTemplate(params)
+	if err != nil {
+		return err
+	}
+
+	yaml, err := tmpl.YAML()
+	if err != nil {
+		return err
+	}
+
+	_, err = s.cfnClient.CreateStackWithContext(ctx, &cloudformation.CreateStackInput{
+		Capabilities: capabilities,
+		TemplateBody: aws.String(string(yaml)),
+		StackName:    aws.String(s.getStackName(instanceID)),
+		Parameters:   []*cloudformation.Parameter{},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *SQSClient) DeleteStack(ctx context.Context, instanceID string) error {
