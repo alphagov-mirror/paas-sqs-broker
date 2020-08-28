@@ -2,13 +2,9 @@ package provider_test
 
 import (
 	"encoding/json"
-	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
-	goformation "github.com/awslabs/goformation/v4"
-	goformationsqs "github.com/awslabs/goformation/v4/cloudformation/sqs"
-	goformationtags "github.com/awslabs/goformation/v4/cloudformation/tags"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -58,66 +54,24 @@ var _ = Describe("Provider", func() {
 			Expect(operationData).To(Equal("provision"))
 			Expect(isAsync).To(BeTrue())
 
-			Expect(fakeSQSClient.CreateStackWithContextCallCount()).To(Equal(1))
+			Expect(fakeSQSClient.CreateStackCallCount()).To(Equal(1))
 
-			ctx, input, _ := fakeSQSClient.CreateStackWithContextArgsForCall(0)
+			ctx, instanceID, orgID, params := fakeSQSClient.CreateStackArgsForCall(0)
 			Expect(ctx).ToNot(BeNil())
-			Expect(input.Capabilities).To(ConsistOf(
-				aws.String("CAPABILITY_NAMED_IAM"),
+			Expect(instanceID).To(Equal(provisionData.InstanceID))
+			Expect(orgID).To(Equal(provisionData.Details.OrganizationGUID))
+			Expect(params.Tags).To(And(
+				HaveKeyWithValue("Service", "sqs"),
+				HaveKeyWithValue("Name", provisionData.InstanceID),
+				HaveKeyWithValue("Customer", provisionData.Details.OrganizationGUID),
+				HaveKeyWithValue("Environment",  "test"),
 			))
-			Expect(input.TemplateBody).ToNot(BeNil())
-			Expect(input.StackName).To(Equal(aws.String(fmt.Sprintf("paas-sqs-broker-%s", provisionData.InstanceID))))
-
-			t, err := goformation.ParseYAML([]byte(*input.TemplateBody))
-			Expect(err).ToNot(HaveOccurred())
-
-			// we should see a queue resource
-			Expect(t.Resources).To(ContainElement(BeAssignableToTypeOf(&goformationsqs.Queue{})))
-			queue, ok := t.Resources[sqs.SQSResourceName].(*goformationsqs.Queue)
-			Expect(ok).To(BeTrue())
-
-			// fifo should be set to false because we asked for a standard queue
-			Expect(queue.FifoQueue).To(BeFalse())
-
-			// should have suitable tags set
-			Expect(queue.Tags).To(And(
-				ContainElement(goformationtags.Tag{
-					Key:   "Name",
-					Value: provisionData.InstanceID,
-				}),
-				ContainElement(goformationtags.Tag{
-					Key:   "Service",
-					Value: "sqs",
-				}),
-				ContainElement(goformationtags.Tag{
-					Key:   "Customer",
-					Value: provisionData.Details.OrganizationGUID,
-				}),
-				ContainElement(goformationtags.Tag{
-					Key:   "Environment",
-					Value: "test",
-				}),
-			))
-
-			// the queue resource should have had values from provisionData passed through
-			queueName := fmt.Sprintf("paas-sqs-broker-%s", provisionData.InstanceID)
-			Expect(queue.QueueName).To(Equal(queueName))
-
-			// we set this in provdata
-			Expect(queue.ContentBasedDeduplication).To(BeTrue())
 		})
 	})
 
 	DescribeTable("last operation fetches stack status",
 		func(cloudformationStatus string, expectedServiceStatus domain.LastOperationState) {
-			fakeSQSClient.DescribeStacksWithContextReturnsOnCall(0, &cloudformation.DescribeStacksOutput{
-				Stacks: []*cloudformation.Stack{
-					{
-						StackName:   aws.String("some stack"),
-						StackStatus: aws.String(cloudformationStatus),
-					},
-				},
-			}, nil)
+			fakeSQSClient.GetStackStatusReturnsOnCall(0, cloudformationStatus, nil)
 			lastOperationData := provideriface.LastOperationData{
 				InstanceID: "09E1993E-62E2-4040-ADF2-4D3EC741EFE6",
 			}
