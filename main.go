@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"log"
@@ -54,9 +55,12 @@ func main() {
 	}))
 	cfg := aws.NewConfig()
 	cfg = cfg.WithRegion(sqsClientConfig.AWSRegion)
-	sqsClient := sqs.AWSClient{
-		CloudFormation: cloudformation.New(sess, cfg),
-	}
+	sqsClient := sqs.NewSQSClient(
+		context.Background(),
+		sqsClientConfig,
+		cloudformation.New(sess, cfg),
+		logger,
+	)
 
 	sqsProvider := provider.NewSQSProvider(sqsClient, "TODO-this-environment")
 	if err != nil {
