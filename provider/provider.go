@@ -85,11 +85,11 @@ func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface
 
 func (s *SQSProvider) Deprovision(ctx context.Context, deprovisionData provideriface.DeprovisionData) (operationData string, isAsync bool, err error) {
 	stackName := s.getStackName(deprovisionData.InstanceID)
-	stack, err := s.getStack(ctx, deprovisionData.InstanceID)
+	stack, err := s.getStack(ctx, stackName)
 	if err == ErrStackNotFound {
 		// resource is already deleted (or never existsed)
 		// so we're done here
-		return "", false, nil
+		return "", false, brokerapi.ErrInstanceDoesNotExist
 	} else if err != nil {
 		// failed to get stack status
 		return "", false, err // should this be async and checked later

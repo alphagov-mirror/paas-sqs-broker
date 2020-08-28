@@ -11,6 +11,7 @@ require (
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
 	github.com/pivotal-cf/brokerapi v6.4.2+incompatible
+	github.com/satori/go.uuid v1.2.0
 )
 
 go 1.13

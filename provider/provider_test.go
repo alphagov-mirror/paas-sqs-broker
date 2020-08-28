@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/pivotal-cf/brokerapi/domain"
 
 	"context"
@@ -181,6 +182,24 @@ var _ = Describe("Provider", func() {
 	)
 
 	Describe("Deprovision", func() {
+		It("errors when deleting a non-existent stack", func() {
+			fakeSQSClient.DescribeStacksWithContextReturnsOnCall(
+				0,
+				&cloudformation.DescribeStacksOutput{
+					Stacks: []*cloudformation.Stack{},
+				},
+				&fakeClient.MockAWSError{
+					C:    "ValidationError",
+					M: "Stack with id paas-sqs-broker-09E1993E-62E2-4040-ADF2-4D3EC741EFE6 does not exist",
+				},
+			)
+
+			deprovisionData := provideriface.DeprovisionData{
+				InstanceID: "09E1993E-62E2-4040-ADF2-4D3EC741EFE6",
+			}
+			_, _, err := sqsProvider.Deprovision(context.Background(), deprovisionData)
+			Expect(err).To(MatchError(brokerapi.ErrInstanceDoesNotExist))
+		})
 		It("deletes a cloudformation stack", func() {
 			fakeSQSClient.DescribeStacksWithContextReturnsOnCall(0, &cloudformation.DescribeStacksOutput{
 				Stacks: []*cloudformation.Stack{
