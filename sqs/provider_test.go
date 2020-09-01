@@ -1,4 +1,4 @@
-package provider_test
+package sqs_test
 
 import (
 	"encoding/json"
@@ -14,7 +14,6 @@ import (
 	"context"
 
 	provideriface "github.com/alphagov/paas-service-broker-base/provider"
-	"github.com/alphagov/paas-sqs-broker/provider"
 	"github.com/alphagov/paas-sqs-broker/sqs"
 	fakeClient "github.com/alphagov/paas-sqs-broker/sqs/fakes"
 )
@@ -22,12 +21,12 @@ import (
 var _ = Describe("Provider", func() {
 	var (
 		fakeSQSClient *fakeClient.FakeClient
-		sqsProvider   *provider.SQSProvider
+		sqsProvider   *sqs.SQSProvider
 	)
 
 	BeforeEach(func() {
 		fakeSQSClient = &fakeClient.FakeClient{}
-		sqsProvider = provider.NewSQSProvider(
+		sqsProvider = sqs.NewSQSProvider(
 			fakeSQSClient,
 			"test", // environment
 		)
@@ -64,7 +63,7 @@ var _ = Describe("Provider", func() {
 				HaveKeyWithValue("Service", "sqs"),
 				HaveKeyWithValue("Name", provisionData.InstanceID),
 				HaveKeyWithValue("Customer", provisionData.Details.OrganizationGUID),
-				HaveKeyWithValue("Environment",  "test"),
+				HaveKeyWithValue("Environment", "test"),
 			))
 		})
 	})
@@ -178,7 +177,7 @@ var _ = Describe("Provider", func() {
 				}
 
 				_, _, err := sqsProvider.Update(context.Background(), updateData)
-				Expect(err).To(MatchError(provider.ErrUpdateNotSupported))
+				Expect(err).To(MatchError(sqs.ErrUpdateNotSupported))
 			})
 		})
 

@@ -1,16 +1,13 @@
-package provider
+package sqs
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	provideriface "github.com/alphagov/paas-service-broker-base/provider"
-	"github.com/alphagov/paas-sqs-broker/sqs"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/pivotal-cf/brokerapi"
 )
@@ -22,10 +19,10 @@ var (
 
 type SQSProvider struct {
 	Environment string
-	client      sqs.Client
+	client      Client
 }
 
-func NewSQSProvider(sqsClient sqs.Client, env string) *SQSProvider {
+func NewSQSProvider(sqsClient Client, env string) *SQSProvider {
 	return &SQSProvider{
 		Environment: env,
 		client:      sqsClient,
@@ -33,7 +30,7 @@ func NewSQSProvider(sqsClient sqs.Client, env string) *SQSProvider {
 }
 
 func (s *SQSProvider) Provision(ctx context.Context, provisionData provideriface.ProvisionData) (dashboardURL string, operationData string, isAsync bool, err error) {
-	params := sqs.QueueParams{} // TODO eww
+	params := QueueParams{} // TODO eww
 	if err := json.Unmarshal(provisionData.Details.RawParameters, &params); err != nil {
 		return "", "", false, err
 	}
@@ -83,7 +80,7 @@ func (s *SQSProvider) Deprovision(ctx context.Context, deprovisionData provideri
 
 	err = s.client.DeleteStack(ctx, deprovisionData.InstanceID)
 
-	if err == sqs.ErrStackNotFound {
+	if err == ErrStackNotFound {
 		// resource is already deleted (or never existed)
 		// so we're done here
 		return "", false, brokerapi.ErrInstanceDoesNotExist
@@ -139,17 +136,6 @@ func (s *SQSProvider) LastOperation(ctx context.Context, lastOperationData provi
 	default:
 		return brokerapi.InProgress, "pending", nil
 	}
-}
-
-func IsNotFoundError(err error) bool {
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == "ResourceNotFoundException" {
-			return true
-		} else if awsErr.Code() == "ValidationError" && strings.Contains(awsErr.Message(), sqs.NoExistErrMatch) {
-			return true
-		}
-	}
-	return false
 }
 
 func in(needle string, haystack []string) bool {
